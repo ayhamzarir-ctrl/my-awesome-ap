@@ -989,6 +989,35 @@
 
         /* ==================== RESPONSIVE ==================== */
 
+        /* ==================== SIDEBAR TOGGLE ==================== */
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            bottom: 70px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--pink));
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            cursor: pointer;
+            z-index: 2000;
+            box-shadow: 0 5px 20px rgba(255,105,180,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar.open {
+            width: 250px !important;
+        }
+
+        .sidebar.open .sidebar-text {
+            opacity: 1 !important;
+            display: block !important;
+        }
+
         /* ---- Tablet (768px) ---- */
         @media (max-width: 768px) {
             .gate-card { padding: 35px 25px; }
@@ -1040,6 +1069,7 @@
 
         /* ---- Mobile (480px) ---- */
         @media (max-width: 480px) {
+            .sidebar-toggle { display: flex; }
             .gate-container { padding: 15px; }
             .gate-card { padding: 30px 20px; border-radius: 20px; }
             .gate-title { font-size: 1.5rem; }
@@ -1288,6 +1318,28 @@
                 <div class="gate-hint">
                     💡 تلميح: التاريخ الذي بدأت فيه قصتنا المميزة
                 </div>
+
+                <div style="
+                    margin-top: 20px;
+                    padding: 15px;
+                    background: rgba(255,105,180,0.1);
+                    border-radius: 12px;
+                    border: 1px solid rgba(255,105,180,0.3);
+                    text-align: center;
+                ">
+                    <div style="font-size: 1.8rem; margin-bottom: 5px;">🌸</div>
+                    <div style="
+                        font-family: 'Amiri';
+                        color: #ff69b4;
+                        font-size: 1.1rem;
+                        font-weight: bold;
+                    ">أرام</div>
+                    <div style="
+                        color: rgba(255,255,255,0.5);
+                        font-size: 0.8rem;
+                        margin-top: 4px;
+                    ">🎂 عيد الميلاد: 10 مارس</div>
+                </div>
             </div>
         </div>
     </div>
@@ -1304,7 +1356,8 @@
     <!-- Main Container -->
     <div id="main-container">
         <!-- Sidebar Navigation -->
-        <nav class="sidebar">
+        <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+        <nav class="sidebar" id="main-sidebar">
             <a class="sidebar-item active" data-page="welcome">
                 <span class="sidebar-icon">🏠</span>
                 <span class="sidebar-text">الصفحة الرئيسية</span>
@@ -1701,7 +1754,8 @@
     
     <script>
         // ==================== GATE KEEPER ====================
-        const GATE_DATE = '2025-10-24';
+        // التاريخ مشفر - لا يظهر بشكل واضح في الكود
+        const _gd = atob('MjAyNS0xMC0yNA=='); // مشفر بـ base64
         const MAX_ATTEMPTS = 5;
         let attempts = 0;
 
@@ -1772,7 +1826,7 @@
             attempts++;
             const enteredDate = `${year}-${month}-${day}`;
 
-            if (enteredDate === GATE_DATE) {
+            if (enteredDate === _gd) {
                 // Correct date!
                 errorEl.textContent = '';
                 localStorage.setItem('arami_authenticated', 'true');
@@ -1916,6 +1970,24 @@
                 canvas.height = window.innerHeight;
             });
         }
+
+        // ==================== SIDEBAR TOGGLE ====================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('main-sidebar');
+            const btn = document.getElementById('sidebar-toggle-btn');
+            sidebar.classList.toggle('open');
+            btn.textContent = sidebar.classList.contains('open') ? '✕' : '☰';
+        }
+
+        // إغلاق الـ sidebar لما تضغط على أي عنصر
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('main-sidebar');
+            const btn = document.getElementById('sidebar-toggle-btn');
+            if (sidebar && btn && !sidebar.contains(e.target) && e.target !== btn) {
+                sidebar.classList.remove('open');
+                btn.textContent = '☰';
+            }
+        });
 
         // ==================== NAVIGATION ====================
         function setupNavigation() {
