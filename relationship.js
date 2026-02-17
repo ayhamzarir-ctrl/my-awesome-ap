@@ -309,16 +309,34 @@ window.saveNewRelationship = async function() {
             setupDone: true
         });
 
-        // إخفاء شاشة الإعداد مباشرة
+        // إخفاء شاشة الإعداد
         document.getElementById('relationship-overlay').style.display = 'none';
         
-        // تطبيق البيانات
+        // تطبيق البيانات على الموقع
+        const relData = { partnerName, startDate: setupDate, partner1Name: myName };
         if (window.applyRelationshipData) {
-            window.applyRelationshipData({ partnerName, startDate: setupDate }, { myName });
+            window.applyRelationshipData(relData, { myName });
         }
-
+        
+        // تحديث START_DATE
+        if (window.updateStartDate) {
+            window.updateStartDate(setupDate);
+        }
+        
+        // إظهار الموقع الرئيسي (إزالة الـ Gatekeeper)
+        const gatekeeper = document.getElementById('gatekeeper');
+        if (gatekeeper) gatekeeper.style.display = 'none';
+        
+        const mainContainer = document.getElementById('main-container');
+        if (mainContainer) mainContainer.style.display = 'block';
+        
+        // تشغيل التطبيق
+        if (window.initApp) window.initApp();
+        
         // Confetti
-        confetti?.({ particleCount: 150, spread: 120, origin: { y: 0.6 } });
+        if (window.confetti) {
+            confetti({ particleCount: 150, spread: 120, origin: { y: 0.6 } });
+        }
 
     } catch (error) {
         errorEl.textContent = '❌ خطأ: ' + error.message;
