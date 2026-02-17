@@ -246,3 +246,27 @@ window.handleRegister = async function() {
 // انتظر ما يخلص الـ Gatekeeper أولاً
 document.addEventListener('DOMContentLoaded', showAuthWhenReady);
 if (document.readyState !== 'loading') showAuthWhenReady();
+
+// نصدّر showTab عالمياً عشان goToRegister تقدر تستخدمه
+window.showTab = window.showTab || function(tab) {
+    const loginForm    = document.getElementById('form-login');
+    const registerForm = document.getElementById('form-register');
+    const loginTab     = document.getElementById('tab-login');
+    const registerTab  = document.getElementById('tab-register');
+    if (!loginForm) return;
+    if (tab === 'login') {
+        loginForm.style.display    = 'block';
+        registerForm.style.display = 'none';
+        loginTab.style.background    = 'linear-gradient(135deg, #730d1e, #ff69b4)';
+        loginTab.style.border        = 'none';
+        registerTab.style.background = 'transparent';
+        registerTab.style.border     = '2px solid rgba(255,255,255,0.2)';
+    } else {
+        loginForm.style.display    = 'none';
+        registerForm.style.display = 'block';
+        registerTab.style.background = 'linear-gradient(135deg, #9b59b6, #3498db)';
+        registerTab.style.border     = 'none';
+        loginTab.style.background    = 'transparent';
+        loginTab.style.border        = '2px solid rgba(255,255,255,0.2)';
+    }
+};
