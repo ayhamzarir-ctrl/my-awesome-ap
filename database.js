@@ -22,6 +22,8 @@ onAuthStateChanged(auth, async (user) => {
     syncWishes();
     syncJournal();
     syncStartDate();
+    syncRelationshipData();
+    syncTheme();
 });
 
 // ==================== الرسائل ====================
@@ -203,8 +205,67 @@ async function syncStartDate() {
     }
 }
 
+// ==================== مزامنة بيانات العلاقة ====================
+async function syncRelationshipData() {
+    if (!currentRelationshipId) return;
+
+    const relDoc = await getDoc(doc(db, 'relationships', currentRelationshipId));
+    if (!relDoc.exists()) return;
+
+    const relData = relDoc.data();
+
+    // تطبيق البيانات على الموقع
+    if (window.applyRelationshipData) {
+        window.applyRelationshipData(relData, {});
+    }
+
+    // تحديث التقويم بتواريخ خاصة بالزوجين
+    if (relData.startDate || relData.partnerName) {
+        window._relationshipData = relData;
+    }
+}
+
+// ==================== حفظ وتطبيق المزاج ====================
+async function saveTheme(theme) {
+    if (!currentRelationshipId) return;
+    
+    await updateDoc(doc(db, 'relationships_by_date', currentRelationshipId), {
+        currentTheme: theme,
+        themeUpdatedAt: new Date().toISOString()
+    });
+}
+
+function syncTheme() {
+    if (!currentRelationshipId) return;
+    
+    onSnapshot(doc(db, 'relationships_by_date', currentRelationshipId), (snap) => {
+        if (snap.exists()) {
+            const theme = snap.data().currentTheme;
+            if (theme && window.changeTheme) {
+                // تطبيق المزاج بدون حفظ (تجنب اللوب)
+                const root = document.documentElement;
+                const themes = {
+                    romantic: { primary: '#ff6b6b', secondary: '#ff8e53', gold: '#ffd700', pink: '#ff69b4', bg: 'linear-gradient(135deg, #1a0508 0%, #2d0a1e 50%, #1a0508 100%)' },
+                    calm: { primary: '#667eea', secondary: '#764ba2', gold: '#a8dadc', pink: '#457b9d', bg: 'linear-gradient(135deg, #0a1628 0%, #1d2d44 50%, #0a1628 100%)' },
+                    happy: { primary: '#f093fb', secondary: '#f5576c', gold: '#ffd166', pink: '#ef476f', bg: 'linear-gradient(135deg, #2d132c 0%, #4a1942 50%, #2d132c 100%)' },
+                    dreamy: { primary: '#4facfe', secondary: '#00f2fe', gold: '#b8f2e6', pink: '#5fa8d3', bg: 'linear-gradient(135deg, #011627 0%, #1b3a52 50%, #011627 100%)' }
+                };
+                const colors = themes[theme];
+                if (colors) {
+                    root.style.setProperty('--primary', colors.primary);
+                    root.style.setProperty('--secondary', colors.secondary);
+                    root.style.setProperty('--gold', colors.gold);
+                    root.style.setProperty('--pink', colors.pink);
+                    document.body.style.background = colors.bg;
+                }
+            }
+        }
+    });
+}
+
 // ==================== تسجيل الدوال عالمياً ====================
 window.firebaseAddMessage  = addMessageToFirebase;
+window.firebaseSaveTheme   = saveTheme;
 window.firebaseAddWish     = addWishToFirebase;
 window.firebaseAddJournal  = addJournalToFirebase;
 window.toggleWishFirebase  = async (id, completed) => {

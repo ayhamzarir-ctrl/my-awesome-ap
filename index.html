@@ -1,4 +1,4 @@
-         <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -1805,62 +1805,45 @@
             });
         })();
 
-        function checkGateDate() {
+        async function checkGateDate() {
             const day = document.getElementById('gate-day').value;
             const month = document.getElementById('gate-month').value;
             const year = document.getElementById('gate-year').value;
             const errorEl = document.getElementById('gate-error');
 
-            // Check if all fields are filled
             if (!day || !month || !year) {
                 errorEl.textContent = '⚠️ الرجاء اختيار التاريخ كاملاً';
                 return;
             }
 
-            // Check attempts limit
-            if (attempts >= MAX_ATTEMPTS) {
-                errorEl.textContent = '🔒 تم تجاوز عدد المحاولات. حاول لاحقاً...';
-                return;
-            }
-
-            attempts++;
             const enteredDate = `${year}-${month}-${day}`;
+            errorEl.textContent = '';
 
-            if (enteredDate === _gd) {
-                // Correct date!
-                errorEl.textContent = '';
-                // تم إزالة localStorage - Firebase يتولى الحماية
-                
-                // Success animation
-                const gateCard = document.querySelector('.gate-card');
-                gateCard.style.transform = 'scale(1.1)';
-                gateCard.style.transition = 'all 0.3s';
-                
-                setTimeout(() => {
-                    gateCard.style.transform = 'scale(1)';
-                    setTimeout(openGate, 300);
-                }, 300);
+            // استيراد date-gate.js والتحقق
+            const { checkDate, showPasswordScreen } = await import('./date-gate.js');
+            const result = await checkDate(enteredDate);
 
-                // Confetti celebration
-                if (typeof confetti !== 'undefined') {
-                    confetti({
-                        particleCount: 150,
-                        spread: 120,
-                        origin: { y: 0.6 },
-                        colors: ['#ffd700', '#ff69b4', '#9b59b6']
+            if (result.exists) {
+                // التاريخ موجود
+                if (result.isSpecial) {
+                    // 24-10-2025 - دخول مباشر بدون كلمة مرور
+                    confetti?.({ particleCount: 150, spread: 120, origin: { y: 0.6 }, colors: ['#ffd700', '#ff69b4'] });
+                    openGate();
+                } else if (result.needsPassword) {
+                    // تاريخ عادي - يطلب كلمة المرور
+                    showPasswordScreen(enteredDate, () => {
+                        confetti?.({ particleCount: 100, spread: 100, origin: { y: 0.6 } });
+                        openGate();
                     });
                 }
             } else {
-                // Wrong date
-                const remaining = MAX_ATTEMPTS - attempts;
-                errorEl.textContent = `❌ التاريخ غير صحيح! المحاولات المتبقية: ${remaining}`;
-                
-                // Shake animation
-                const gateCard = document.querySelector('.gate-card');
-                gateCard.style.animation = 'shake 0.5s';
+                // التاريخ غير موجود
+                errorEl.innerHTML = `❌ هذا التاريخ غير مسجل<br><span style="font-size:0.85rem;color:#ffd700;margin-top:5px;display:block;">هل تريد إنشاء مساحة خاصة؟</span>`;
                 setTimeout(() => {
-                    gateCard.style.animation = 'slideUp 1s ease-out';
-                }, 500);
+                    if (confirm('هذا التاريخ غير مسجل. هل تريد إنشاء مساحة خاصة جديدة؟')) {
+                        goToRegister();
+                    }
+                }, 800);
             }
         }
 
@@ -2546,17 +2529,57 @@
         }
 
         // ==================== THEMES ====================
-        function changeTheme(theme) {
+        async function changeTheme(theme) {
             const root = document.documentElement;
             const themes = {
-                romantic: { primary: '#ff6b6b', secondary: '#ff8e53' },
-                calm: { primary: '#667eea', secondary: '#764ba2' },
-                happy: { primary: '#f093fb', secondary: '#f5576c' },
-                dreamy: { primary: '#4facfe', secondary: '#00f2fe' }
+                romantic: { 
+                    primary: '#ff6b6b', 
+                    secondary: '#ff8e53',
+                    gold: '#ffd700',
+                    pink: '#ff69b4',
+                    background: 'linear-gradient(135deg, #1a0508 0%, #2d0a1e 50%, #1a0508 100%)'
+                },
+                calm: { 
+                    primary: '#667eea', 
+                    secondary: '#764ba2',
+                    gold: '#a8dadc',
+                    pink: '#457b9d',
+                    background: 'linear-gradient(135deg, #0a1628 0%, #1d2d44 50%, #0a1628 100%)'
+                },
+                happy: { 
+                    primary: '#f093fb', 
+                    secondary: '#f5576c',
+                    gold: '#ffd166',
+                    pink: '#ef476f',
+                    background: 'linear-gradient(135deg, #2d132c 0%, #4a1942 50%, #2d132c 100%)'
+                },
+                dreamy: { 
+                    primary: '#4facfe', 
+                    secondary: '#00f2fe',
+                    gold: '#b8f2e6',
+                    pink: '#5fa8d3',
+                    background: 'linear-gradient(135deg, #011627 0%, #1b3a52 50%, #011627 100%)'
+                }
             };
             
             const colors = themes[theme];
+            
+            // تطبيق الألوان على كل المتغيرات
             root.style.setProperty('--primary', colors.primary);
+            root.style.setProperty('--secondary', colors.secondary);
+            root.style.setProperty('--gold', colors.gold);
+            root.style.setProperty('--pink', colors.pink);
+            
+            // تغيير الخلفية
+            document.body.style.background = colors.background;
+            
+            // حفظ المزاج في Firebase
+            if (window.firebaseSaveTheme) {
+                await window.firebaseSaveTheme(theme);
+            } else {
+                localStorage.setItem('currentTheme', theme);
+            }
+            
             showConfetti();
         }
 
@@ -2727,6 +2750,7 @@
             }]);
         }
     </script>
+    <script type="module" src="date-gate.js"></script>
     <script type="module" src="auth.js"></script>
     <script type="module" src="relationship.js"></script>
     <script type="module" src="database.js"></script>
