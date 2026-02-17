@@ -1792,10 +1792,9 @@
                 yearSelect.appendChild(option);
             }
 
-            // Check if already authenticated
-            if (localStorage.getItem('arami_authenticated') === 'true') {
-                openGate();
-            }
+            // لا نتخطى الـ Gatekeeper تلقائياً
+            // المستخدم لازم يدخل التاريخ في كل مرة لأول زيارة
+            // Firebase سيتذكره بعد تسجيل الدخول
 
             // Enter key support
             document.addEventListener('keydown', (e) => {
@@ -1829,7 +1828,7 @@
             if (enteredDate === _gd) {
                 // Correct date!
                 errorEl.textContent = '';
-                localStorage.setItem('arami_authenticated', 'true');
+                // تم إزالة localStorage - Firebase يتولى الحماية
                 
                 // Success animation
                 const gateCard = document.querySelector('.gate-card');
