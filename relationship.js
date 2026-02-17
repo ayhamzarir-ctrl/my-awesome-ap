@@ -151,8 +151,80 @@ const relationshipHTML = `
 </div>
 `;
 
+// ==================== شاشة إعداد العلاقة ====================
+const setupHTML = `
+<div id="setup-overlay" style="
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #000 0%, #1a0508 50%, #2d0a1e 100%);
+    z-index: 19002;
+    display: none;
+    justify-content: center; align-items: center;
+    font-family: 'Cairo', sans-serif;
+    padding: 20px; box-sizing: border-box;
+    overflow-y: auto;
+">
+    <div style="
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(30px);
+        border-radius: 30px;
+        padding: 40px 35px;
+        border: 2px solid rgba(255,215,0,0.2);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        text-align: center;
+        width: 100%; max-width: 420px;
+        margin: auto;
+    ">
+        <div style="font-size: 3.5rem; margin-bottom: 12px;">💑</div>
+        <h2 style="
+            font-size: 1.7rem; margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffd700, #ff69b4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-family: 'Amiri';
+        ">أخبرنا عن علاقتكم</h2>
+        <p style="color: #ffcccc; margin-bottom: 25px; font-size: 0.85rem;">
+            هالمعلومات ستظهر في موقعكم الخاص 🌸
+        </p>
+
+        <input id="setup-partner-name" type="text" placeholder="اسم شريكتك / شريكك ❤️" style="
+            width: 100%; padding: 13px; border-radius: 12px; margin-bottom: 12px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; font-family: 'Cairo'; font-size: 0.95rem; box-sizing: border-box;
+            text-align: center;
+        ">
+
+        <input id="setup-my-name" type="text" placeholder="اسمك أنت 🙂" style="
+            width: 100%; padding: 13px; border-radius: 12px; margin-bottom: 12px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; font-family: 'Cairo'; font-size: 0.95rem; box-sizing: border-box;
+            text-align: center;
+        ">
+
+        <label style="color: rgba(255,255,255,0.6); font-size: 0.8rem; display: block; margin-bottom: 6px;">
+            📅 تاريخ تعارفكم
+        </label>
+        <input id="setup-date" type="date" style="
+            width: 100%; padding: 13px; border-radius: 12px; margin-bottom: 20px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; font-family: 'Cairo'; font-size: 0.95rem; box-sizing: border-box;
+        ">
+
+        <button onclick="saveSetup()" style="
+            width: 100%; padding: 15px; border-radius: 15px; border: none;
+            background: linear-gradient(135deg, #730d1e, #ff69b4);
+            color: white; font-family: 'Cairo'; font-size: 1rem;
+            font-weight: 700; cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255,105,180,0.4);
+        ">ابدأ رحلتكم معاً 💕</button>
+
+        <p id="setup-error" style="color: #ff6b6b; margin-top: 12px; min-height: 20px; font-size: 0.85rem;"></p>
+    </div>
+</div>
+`;
+
 // ==================== إضافة الشاشات ====================
 document.body.insertAdjacentHTML('beforeend', relationshipHTML);
+document.body.insertAdjacentHTML('beforeend', setupHTML);
 
 // ==================== تحقق من حالة المستخدم ====================
 onAuthStateChanged(auth, async (user) => {
@@ -167,6 +239,19 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById('relationship-overlay').style.display = 'flex';
     } else {
         document.getElementById('relationship-overlay').style.display = 'none';
+
+        // شيك إذا إعداد العلاقة مكتمل
+        const relDoc = await getDoc(doc(db, 'relationships', userData.relationshipId));
+        if (relDoc.exists()) {
+            const relData = relDoc.data();
+            // إذا ما في إعداد بعد، أظهر شاشة الإعداد
+            if (!relData.partnerName && !userData.setupDone) {
+                document.getElementById('setup-overlay').style.display = 'flex';
+            } else {
+                // حدّث الموقع ببيانات العلاقة
+                applyRelationshipData(relData, userData);
+            }
+        }
     }
 });
 
@@ -293,6 +378,81 @@ window.copyCode = function() {
         }, 1500);
     });
 };
+
+// ==================== حفظ إعداد العلاقة ====================
+window.saveSetup = async function() {
+    const user        = auth.currentUser;
+    const partnerName = document.getElementById('setup-partner-name').value.trim();
+    const myName      = document.getElementById('setup-my-name').value.trim();
+    const setupDate   = document.getElementById('setup-date').value;
+    const errorEl     = document.getElementById('setup-error');
+
+    if (!partnerName || !myName || !setupDate) {
+        errorEl.textContent = '⚠️ أدخل كل البيانات';
+        return;
+    }
+
+    try {
+        const userDoc   = await getDoc(doc(db, 'users', user.uid));
+        const relId     = userDoc.data().relationshipId;
+
+        // حفظ في العلاقة
+        await updateDoc(doc(db, 'relationships', relId), {
+            partnerName: partnerName,
+            startDate: setupDate,
+            status: 'active'
+        });
+
+        // حفظ في المستخدم
+        await updateDoc(doc(db, 'users', user.uid), {
+            myName: myName,
+            setupDone: true
+        });
+
+        // تطبيق البيانات على الموقع
+        const relDoc = await getDoc(doc(db, 'relationships', relId));
+        applyRelationshipData(relDoc.data(), { myName });
+
+        document.getElementById('setup-overlay').style.display = 'none';
+
+    } catch (error) {
+        errorEl.textContent = '❌ خطأ: ' + error.message;
+    }
+};
+
+// ==================== تطبيق بيانات العلاقة على الموقع ====================
+function applyRelationshipData(relData, userData) {
+    if (!relData) return;
+
+    // تحديث تاريخ البداية
+    if (relData.startDate && window.updateStartDate) {
+        window.updateStartDate(relData.startDate);
+    }
+
+    // تحديث اسم الشريك في الواجهة
+    if (relData.partnerName) {
+        // تحديث العنوان الرئيسي
+        const welcomeTitle = document.querySelector('.welcome-title');
+        if (welcomeTitle) {
+            welcomeTitle.textContent = `مرحباً ${relData.partnerName} ❤️`;
+        }
+
+        // تحديث تاريخ الميلاد في التقويم إذا موجود
+        if (relData.partnerBirthday) {
+            window._partnerBirthday = relData.partnerBirthday;
+        }
+    }
+
+    // تحديث عداد الأيام
+    if (relData.startDate) {
+        const days = Math.floor((new Date() - new Date(relData.startDate)) / (1000 * 60 * 60 * 24));
+        const el = document.getElementById('days-together');
+        if (el) el.textContent = days;
+    }
+}
+
+// نصدّر الدالة عالمياً
+window.applyRelationshipData = applyRelationshipData;
 
 // ==================== تخطي الانتظار ====================
 window.skipWaiting = function() {
