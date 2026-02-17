@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+         <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -1319,27 +1319,28 @@
                     💡 تلميح: التاريخ الذي بدأت فيه قصتنا المميزة
                 </div>
 
+                <!-- فاصل -->
                 <div style="
-                    margin-top: 20px;
-                    padding: 15px;
-                    background: rgba(255,105,180,0.1);
-                    border-radius: 12px;
-                    border: 1px solid rgba(255,105,180,0.3);
-                    text-align: center;
+                    display: flex; align-items: center; gap: 10px;
+                    margin: 20px 0; color: rgba(255,255,255,0.3);
+                    font-size: 0.85rem;
                 ">
-                    <div style="font-size: 1.8rem; margin-bottom: 5px;">🌸</div>
-                    <div style="
-                        font-family: 'Amiri';
-                        color: #ff69b4;
-                        font-size: 1.1rem;
-                        font-weight: bold;
-                    ">أرام</div>
-                    <div style="
-                        color: rgba(255,255,255,0.5);
-                        font-size: 0.8rem;
-                        margin-top: 4px;
-                    ">🎂 عيد الميلاد: 10 مارس</div>
+                    <div style="flex:1; height:1px; background:rgba(255,255,255,0.1);"></div>
+                    أو
+                    <div style="flex:1; height:1px; background:rgba(255,255,255,0.1);"></div>
                 </div>
+
+                <!-- زر إنشاء مساحة جديدة -->
+                <button onclick="goToRegister()" style="
+                    width: 100%; padding: 14px; border-radius: 15px;
+                    border: 2px solid rgba(255,215,0,0.4);
+                    background: rgba(255,215,0,0.08);
+                    color: #ffd700; font-family: 'Cairo';
+                    font-size: 0.95rem; font-weight: 600;
+                    cursor: pointer; transition: all 0.3s;
+                ">
+                    ✨ أنشئ مساحتك الخاصة مع شريكتك
+                </button>
             </div>
         </div>
     </div>
@@ -1970,6 +1971,24 @@
             });
         }
 
+        // ==================== GO TO REGISTER ====================
+        function goToRegister() {
+            // إخفاء الـ Gatekeeper
+            const gatekeeper = document.getElementById('gatekeeper');
+            gatekeeper.style.transition = 'opacity 0.5s';
+            gatekeeper.style.opacity = '0';
+            setTimeout(() => {
+                gatekeeper.style.display = 'none';
+                // إظهار شاشة تسجيل الدخول مباشرة على تبويب "إنشاء حساب"
+                const authOverlay = document.getElementById('auth-overlay');
+                if (authOverlay) {
+                    authOverlay.style.display = 'flex';
+                    // انتقل لتبويب إنشاء حساب تلقائياً
+                    if (window.showTab) window.showTab('register');
+                }
+            }, 500);
+        }
+
         // ==================== SIDEBAR TOGGLE ====================
         function toggleSidebar() {
             const sidebar = document.getElementById('main-sidebar');
@@ -2202,10 +2221,26 @@
 
         function loadDates() {
             const container = document.getElementById('dates-container');
-            const dates = getData(STORAGE_KEYS.dates) || [
-                { id: 1, title: 'يوم ميلاد أرامي', date: '2007-03-10', icon: '🎂' },
-                { id: 2, title: 'يومنا الخاص', date: '2025-10-24', icon: '❤️' }
-            ];
+            // جيب البيانات من Firebase أو LocalStorage
+            let dates = getData(STORAGE_KEYS.dates) || [];
+
+            // أضف تواريخ العلاقة تلقائياً
+            const relData = window._relationshipData;
+            const defaultDates = [];
+
+            if (relData?.startDate) {
+                defaultDates.push({ id: 'start', title: 'يوم تعارفنا', date: relData.startDate, icon: '❤️' });
+            } else {
+                defaultDates.push({ id: 'start', title: 'يومنا الخاص', date: '2025-10-24', icon: '❤️' });
+            }
+
+            if (relData?.partnerBirthday) {
+                defaultDates.push({ id: 'bday', title: `عيد ميلاد ${relData.partnerName || 'شريكتي'}`, date: relData.partnerBirthday, icon: '🎂' });
+            }
+
+            // دمج التواريخ الافتراضية مع المحفوظة
+            const allDefaultIds = ['start', 'bday'];
+            dates = [...defaultDates, ...dates.filter(d => !allDefaultIds.includes(d.id))];
             
             container.innerHTML = dates.map(date => {
                 const daysUntil = Math.floor((new Date(date.date) - new Date()) / (1000 * 60 * 60 * 24));
